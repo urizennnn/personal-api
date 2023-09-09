@@ -46,12 +46,22 @@ app.post('/createUser', async (req, res) => {
 
 app.post('/addPassword', async (req, res) => {
     try {
-        const newInput = await Manager.create(req.body)
-        res.status(200).json(newInput);
+        const { user, passManagerKey, passManagerValue } = req.body;
+
+        // Find the existing user by 'user' field and update or create it
+        const updatedUser = await Manager.findOneAndUpdate(
+            { user },
+            { $set: { [`passManager.${passManagerKey}`]: passManagerValue } },
+            { upsert: true, new: true }
+        );
+
+        res.status(200).json({ message: 'Password added/updated successfully.', user: updatedUser });
     } catch (error) {
         handleErrors(res, error);
     }
 });
+
+
 app.get('/showUser', async (req, res) => {
     try {
         const data = await User.find({});
@@ -64,6 +74,31 @@ app.get('/showPassword', async (req, res) => {
     try {
         const data = await Manager.find({});
         res.status(200).json(data);
+    } catch (error) {
+        handleErrors(res, error);
+    }
+});
+app.patch('/updateInfo', async (req, res) => {
+    try {
+        const { name, newPassword } = req.body;
+
+    
+        const existingUser = await User.findOne({ name });
+
+        if (!existingUser) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        if (newPassword) {
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+            existingUser.password = hashedPassword;
+        }
+
+        await existingUser.save();
+
+        res.status(200).json({ message: 'User information updated successfully.' });
     } catch (error) {
         handleErrors(res, error);
     }
@@ -85,7 +120,7 @@ app.delete('/delUser', async (req, res) => {
         const isPasswordValid = await bcrypt.compare(password, userToDelete.password);
 
         if (!isPasswordValid) {
-            return res.status(401).json({ message: 'Invalid password.' });
+            return res.status(401).json({ message: 'Invalid credentials.' });
         }
 
 
