@@ -1,11 +1,13 @@
 const express = require('express')
+const bcrypt = require('bcrypt');
 const app = express()
 const mongoose = require('mongoose')
-const User = require('./models/users.js') 
+const User = require('./models/users.js')
 const Manager = require('./models/passwords.js')
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json())
+
 
 mongoose.set("strictQuery", false)
 mongoose.connect('mongodb+srv://urizen:urizenYt132@timer.9w3awsf.mongodb.net/?retryWrites=true&w=majority')
@@ -24,16 +26,25 @@ const handleErrors = (res, error) => {
     res.status(500).json({ message: error.message });
 };
 
-app.post('/userCreate', async (req, res) => {
+app.post('/createUser', async (req, res) => {
     try {
+
+        const existingUser = await User.findOne({ name: req.body.name });
+
+        if (existingUser) {
+            return res.status(400).json({ message: 'User already exists.' });
+        }
+
+
         const newUser = await User.create(req.body);
         res.status(200).json(newUser);
     } catch (error) {
-        handleErrors(res, error);
+        handleErrors(res, error)
     }
 });
 
-app.post('/savePassword', async (req, res) => {
+
+app.post('/addPassword', async (req, res) => {
     try {
         const newInput = await Manager.create(req.body)
         res.status(200).json(newInput);
@@ -41,11 +52,46 @@ app.post('/savePassword', async (req, res) => {
         handleErrors(res, error);
     }
 });
-
-app.get('/showPassword', async (req, res) => { 
+app.get('/showUser', async (req, res) => {
+    try {
+        const data = await User.find({});
+        res.status(200).json(data);
+    } catch (error) {
+        handleErrors(res, error)
+    }
+})
+app.get('/showPassword', async (req, res) => {
     try {
         const data = await Manager.find({});
         res.status(200).json(data);
+    } catch (error) {
+        handleErrors(res, error);
+    }
+});
+
+
+app.delete('/delUser', async (req, res) => {
+    try {
+        const { name, password } = req.body;
+
+
+        const userToDelete = await User.findOne({ name });
+
+        if (!userToDelete) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+
+        const isPasswordValid = await bcrypt.compare(password, userToDelete.password);
+
+        if (!isPasswordValid) {
+            return res.status(401).json({ message: 'Invalid password.' });
+        }
+
+
+        await User.deleteOne({ name });
+
+        res.status(200).json({ message: 'User deleted successfully.' });
     } catch (error) {
         handleErrors(res, error);
     }
