@@ -78,9 +78,12 @@ app.post('/createPassword', async (req, res) => {
 app.post('/updatePassword', async (req, res) => {
     try {
         const { user, passManagerKey, passManagerValue } = req.body;
-        const exists = await Manager.find({user})
-        if(!exists) return res.status(404).json({message:'Please create a User or check url address and try again'})
+        const exists = await Manager.findOne({ user }); 
         
+        if (!exists) {
+            return res.status(404).json({ message: 'User not found. Please create a User or check the URL address and try again' });
+        }
+
         const updatedUser = await Manager.findOneAndUpdate(
             { user },
             { $set: { [`passManager.${passManagerKey}`]: passManagerValue } },
@@ -92,6 +95,7 @@ app.post('/updatePassword', async (req, res) => {
         handleErrors(res, error);
     }
 });
+
 
 
 app.get('/showUser', async (req, res) => {
