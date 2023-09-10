@@ -52,7 +52,7 @@ app.post('/createPassword', async (req, res) => {
 
         const { user, passManager } = req.body;
         const exists = User.find({name:user})
-        if(exists)return res.status(404).json({message:'Please create a user with this name and try again'})
+        if(!exists)return res.status(404).json({message:'Please create a user with this name and try again'})
         const existingUser = await Manager.findOne({ user: user });
 
         if (existingUser) {
