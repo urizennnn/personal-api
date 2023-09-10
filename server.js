@@ -5,8 +5,12 @@ const mongoose = require('mongoose')
 const User = require('./models/users.js')
 const Manager = require('./models/passwords.js')
 const PORT = process.env.PORT || 3000;
+const cors = require('cors')
 
 app.use(express.json())
+app.use(cors({
+    origin: "*"
+}))
 
 
 mongoose.set("strictQuery", false)
@@ -37,7 +41,7 @@ app.post('/createUser', async (req, res) => {
 
 
         const newUser = await User.create(req.body);
-        res.status(201).json(newUser);
+        res.status(201).json({newUser});
     } catch (error) {
         handleErrors(res, error)
     }
