@@ -78,8 +78,9 @@ app.post('/createPassword', async (req, res) => {
 app.post('/updatePassword', async (req, res) => {
     try {
         const { user, passManagerKey, passManagerValue } = req.body;
-
-        // Find the existing user by 'user' field and update or create it
+        const exists = await Manager.find({user})
+        if(!exists) return res.status(404).json({message:'Please create a User or check url address and try again'})
+        
         const updatedUser = await Manager.findOneAndUpdate(
             { user },
             { $set: { [`passManager.${passManagerKey}`]: passManagerValue } },
