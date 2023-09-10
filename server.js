@@ -48,26 +48,32 @@ app.post('/createUser', async (req, res) => {
 });
 app.post('/createPassword', async (req, res) => {
     try {
-        
-
         const { user, passManager } = req.body;
-        const exists = User.find({name:user})
-        if(!exists)return res.status(404).json({message:'Please create a user with this name and try again'})
-        const existingUser = await Manager.findOne({ user: user });
 
-        if (existingUser) {
-            return res.status(400).json({ message: 'Collection already exist please procees to update' });
+        
+        const existingUser = await User.findOne({ name: user });
+
+        if (!existingUser) {
+            return res.status(404).json({ message: 'User does not exist. Please create a user with this name and try again.' });
         }
 
         
-        const newInput = await Manager.create(req.body)
-        res.status(200).json(newInput);
+        const existingManager = await Manager.findOne({ user: user });
 
+        if (existingManager) {
+            return res.status(409).json({ message: 'Password manager already exists for this user. Proceed to update.' });
+        }
+
+       
+        const newInput = await Manager.create(req.body);
         
+        res.status(201).json(newInput);
     } catch (error) {
-        handleErrors(res, error);
+        console.error(error); 
+        res.status(500).json({ message: 'Internal server error' });
     }
 });
+
 
 app.post('/updatePassword', async (req, res) => {
     try {
