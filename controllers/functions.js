@@ -106,35 +106,26 @@ const updateInfo = asyncwrapper(async (req, res, next) => {
 
 
 const delUser = asyncwrapper(async (req, res, next) => {
+    const { name, password } = req.body; 
+  
+    const existingUser = await User.findOne({ name });
 
-    const { name, password } = req.body;
-
-    const userToDelete = await User.findOne({ name });
-
-    if (!userToDelete) {
-        next(createCustomError('User not found', 404))
+    if (!existingUser) {
+        return next(createCustomError('User not found', 404));
     }
 
-    const isPasswordValid = await bcrypt.compare(password, userToDelete.password);
+   
+    const isPassValid = await bcrypt.compare(password, existingUser.password);
 
-    if (!isPasswordValid) {
-        next(createCustomError('Invalid Credentials'))
+    if (!isPassValid) {
+        return next(createCustomError('Invalid Credentials', 401)); 
     }
 
-
+   
     await User.deleteOne({ name });
+    await Manager.deleteOne({ user: name });
 
-
-    const managerToDelete = await Manager.findOne({ user: name });
-    if (managerToDelete) {
-        await Manager.deleteOne({ user: name });
-    }
-    const check = await User.find({ name })
-    if (!check) {
-
-       return res.status(200).json({ message: 'User deleted successfully.' });
-    }
-
+    res.status(200).json({ message: 'User deleted successfully.' });
 });
 
 
