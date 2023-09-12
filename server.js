@@ -14,7 +14,7 @@ app.use(express.json());
 app.use('/api/v1', routes);
 app.use(errorHandlerMiddlewareFunction);
 
-const string = process.env.CONNECTION_STRING;
+const string = process.env.CONNECTION_STRING || undefined;
 
 (async () => {
     try {
