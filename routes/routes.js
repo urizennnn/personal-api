@@ -6,11 +6,12 @@ const { createUser,
     updatePassword,
     showPassword,
     showUser,
-    delUser } = require('../controllers/functions')
-router.get('/',(req,res)=>{
+    delUser,
+    login } = require('../controllers/functions')
+router.get('/', (req, res) => {
     res.send('Hello')
 })
-router.route('/createUser').post(createUser)
+router.route('/signUp').post(createUser)
 
 
 router.route('/createPassword').post(createPassword)
@@ -19,5 +20,6 @@ router.route('/showUser').get(showUser)
 router.route('/showPass').get(showPassword)
 router.route('/updateInfo').put(updateInfo)
 router.route('/delUser').delete(delUser)
+router.route('/login').post(login)
 
 module.exports = router
