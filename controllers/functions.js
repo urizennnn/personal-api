@@ -1,11 +1,11 @@
-const User = require('./models/users.js')
-const Manager = require('./models/passwords.js')
+const User = require('../models/users')
+const Manager = require('../models/passwords')
 const bcrypt = require('bcrypt');
 const asyncwrapper = require('../middleware/asyncwrapper.js')
 const { createCustomError } = require('../errors/custom-errors.js')
 
 
-asyncwrapper(async function createUser(req, res) {
+const createUser = asyncwrapper(async(req, res) =>{
 
 
     const existingUser = await User.findOne({ name: req.body.name });
@@ -20,7 +20,7 @@ asyncwrapper(async function createUser(req, res) {
 
 })
 
-asyncwrapper(async function createPassword(req, res) {
+const createPassword = asyncwrapper(async(req, res) =>{
 
     const { user, passManager } = req.body;
 
@@ -47,7 +47,7 @@ asyncwrapper(async function createPassword(req, res) {
 
 })
 
-asyncwrapper(async function updatePassword(req, res) {
+const updatePassword = asyncwrapper(async(req, res)=> {
 
     const { user, passManagerKey, passManagerValue } = req.body;
 
@@ -66,21 +66,21 @@ asyncwrapper(async function updatePassword(req, res) {
 
 })
 
-asyncwrapper(async function showUser(req, res) {
+const showUser = asyncwrapper(async(req, res) =>{
 
     const data = await User.find({});
     res.status(200).json(data);
 
 })
 
-asyncwrapper(async function showPassword(req, res) {
+const showPassword= asyncwrapper(async(req, res)=> {
 
     const data = await Manager.find({});
     res.status(200).json(data);
 
 })
 
-asyncwrapper(async function updateInfo(req, res) {
+const updateInfo = asyncwrapper(async(req, res)=> {
 
     const { name, newPassword ,oldPassword} = req.body;
   
@@ -107,7 +107,7 @@ asyncwrapper(async function updateInfo(req, res) {
 
 })
 
-asyncwrapper(async function delUser(req, res) {
+const delUser = asyncwrapper(async(req, res)=> {
 
     const { name, password } = req.body;
 
