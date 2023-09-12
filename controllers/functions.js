@@ -5,7 +5,7 @@ const asyncwrapper = require('../middleware/asyncwrapper.js')
 const { createCustomError } = require('../errors/custom-errors.js')
 
 
-const createUser = asyncwrapper(async(req, res,next) =>{
+const createUser = asyncwrapper(async (req, res, next) => {
 
 
     const existingUser = await User.findOne({ name: req.body.name });
@@ -20,7 +20,7 @@ const createUser = asyncwrapper(async(req, res,next) =>{
 
 })
 
-const createPassword = asyncwrapper(async(req, res,next) =>{
+const createPassword = asyncwrapper(async (req, res, next) => {
 
     const { user, passManager } = req.body;
 
@@ -47,7 +47,7 @@ const createPassword = asyncwrapper(async(req, res,next) =>{
 
 })
 
-const updatePassword = asyncwrapper(async(req, res,next)=> {
+const updatePassword = asyncwrapper(async (req, res, next) => {
 
     const { user, passManagerKey, passManagerValue } = req.body;
 
@@ -66,14 +66,14 @@ const updatePassword = asyncwrapper(async(req, res,next)=> {
 
 })
 
-const showUser = asyncwrapper(async(req, res,next) =>{
+const showUser = asyncwrapper(async (req, res, next) => {
 
     const data = await User.find({});
     res.status(200).json(data);
 
 })
 
-const showPassword= asyncwrapper(async(req, res,next)=> {
+const showPassword = asyncwrapper(async (req, res, next) => {
 
     const data = await Manager.find({});
     res.status(200).json(data);
@@ -83,36 +83,36 @@ const showPassword= asyncwrapper(async(req, res,next)=> {
 const updateInfo = asyncwrapper(async (req, res, next) => {
     const { name, newPassword } = req.body;
 
- 
-        const existingUser = await User.findOne({ name });
 
-        if (!existingUser) {
-            next(createCustomError('User not found',404))
-            // return res.status(404).json({ error: 'User not found' });
-        }
-        if(!newPassword) return next(createCustomError('Invalid Credentials',404))
-        if (newPassword) {
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(newPassword, salt);
+    const existingUser = await User.findOne({ name });
 
-            existingUser.password = hashedPassword;
-        }
-
-        await existingUser.save();
-
-        res.status(200).json({ message: 'User information updated successfully.' });
+    if (!existingUser) {
+        next(createCustomError('User not found', 404))
+        // return res.status(404).json({ error: 'User not found' });
     }
+    if (!newPassword) return next(createCustomError('Invalid Credentials', 404))
+    if (newPassword) {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        existingUser.password = hashedPassword;
+    }
+
+    await existingUser.save();
+
+    res.status(200).json({ message: 'User information updated successfully.' });
+}
 );
 
 
 const delUser = asyncwrapper(async (req, res, next) => {
-    
-        const { name, password } = req.body;
+
+    const { name, password } = req.body;
 
     const userToDelete = await User.findOne({ name });
 
     if (!userToDelete) {
-        next(createCustomError('User not found',404))
+        next(createCustomError('User not found', 404))
     }
 
     const isPasswordValid = await bcrypt.compare(password, userToDelete.password);
@@ -129,10 +129,13 @@ const delUser = asyncwrapper(async (req, res, next) => {
     if (managerToDelete) {
         await Manager.deleteOne({ user: name });
     }
+    const check = await User.find({ name })
+    if (!check) {
 
-    res.status(200).json({ message: 'User deleted successfully.' });
-        
-    });
+       return res.status(200).json({ message: 'User deleted successfully.' });
+    }
+
+});
 
 
 
