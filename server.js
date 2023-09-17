@@ -2,13 +2,13 @@ require("dotenv").config();
 require("express-async-errors");
 
 const cors = require("cors");
-
+const moregan = require('morgan')
 const express = require("express");
 const app = express();
 
 const passwordRouter = require("./routes/password.js");
 const userRouter = require("./routes/user.js");
-
+app.use(morgan('dev'))
 const connectDb = require("./db/connect.js");
 
 const errorHandlerMiddleware = require("./middleware/error-handler.js");
