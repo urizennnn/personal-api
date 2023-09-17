@@ -29,8 +29,8 @@ app.get("/api/v1/", (req, res) => {
 });
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/password", passwordRouter);
-app.use(errorHandlerMiddleware);
 app.use(notFoundMiddleware);
+app.use(errorHandlerMiddleware);
 
 const string = process.env.CONNECTION_STRING || undefined;
 

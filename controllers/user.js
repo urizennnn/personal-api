@@ -1,6 +1,6 @@
 const User = require("../models/users");
 const Manager = require("../models/passwords");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const { CustomAPIErrorHandler } = require("../errors/custom-errors.js");
 const { StatusCodes } = require("http-status-codes");
 
@@ -15,7 +15,8 @@ const createUser = async (req, res) => {
   }
 
   const newUser = await User.create(req.body);
-  res.status(StatusCodes.CREATED).json({ newUser });
+  const token = newUser.generateAuthToken()
+  res.status(StatusCodes.CREATED).json({ newUser,token });
 };
 
 const showUser = async (req, res) => {
@@ -64,7 +65,8 @@ const login = async (req, res) => {
       StatusCodes.UNAUTHORIZED
     );
   }
-  res.status(StatusCodes.OK).json({ message: "Welcome back" });
+  const token = existingUser.generateAuthToken()
+  res.status(StatusCodes.OK).json({ message: "Welcome back" ,token,user:existingUser.name});
 };
 
 const updateInfo = async (req, res) => {
