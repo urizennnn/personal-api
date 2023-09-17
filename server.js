@@ -2,13 +2,12 @@ require("dotenv").config();
 require("express-async-errors");
 
 const cors = require("cors");
-const morgan = require('morgan')
+const morgan = require('morgan');
 const express = require("express");
 const app = express();
 
 const passwordRouter = require("./routes/password.js");
 const userRouter = require("./routes/user.js");
-app.use(morgan('dev'))
 const connectDb = require("./db/connect.js");
 
 const errorHandlerMiddleware = require("./middleware/error-handler.js");
@@ -23,7 +22,7 @@ app.use(
   })
 );
 app.use(express.json());
-
+app.use(morgan('dev'));
 //Routes
 app.get("/api/v1/", (req, res) => {
   res.send("Hello");
