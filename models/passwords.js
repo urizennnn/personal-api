@@ -1,9 +1,9 @@
 const { Schema, model } = require("mongoose");
 
 const managerSchema = Schema({
-  user: {
+  email: {
     type: String,
-    required: [true, "Please input username"],
+    required: [true, "Please input email"],
   },
   passManager: {
     type: Map,

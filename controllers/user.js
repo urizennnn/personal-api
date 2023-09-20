@@ -2,10 +2,20 @@ const User = require("../models/users");
 const Manager = require("../models/passwords");
 const bcrypt = require("bcryptjs");
 const { CustomAPIErrorHandler } = require("../errors/custom-errors.js");
-const { StatusCodes } = require("http-status-codes");
+const {
+  ReasonPhrases,
+  StatusCodes,
+  getReasonPhrase,
+  getStatusCode, } = require('http-status-codes')
+const sgMail = require('@sendgrid/mail')
+
+
+// const nodemailer = require ('nodemailer')
+require('dotenv').config()
+
 
 const createUser = async (req, res) => {
-  const existingUser = await User.findOne({ name: req.body.name });
+  const existingUser = await User.findOne({ email: req.body.email });
 
   if (existingUser) {
     throw new CustomAPIErrorHandler(
@@ -13,10 +23,18 @@ const createUser = async (req, res) => {
       StatusCodes.INTERNAL_SERVER_ERROR
     );
   }
-
+  const { email } = req.body;
   const newUser = await User.create(req.body);
-  const token = newUser.generateAuthToken()
-  res.status(StatusCodes.CREATED).json({ newUser,token });
+  const token = newUser.generateAuthToken();
+
+  // Invoke the sendMail function with the required parameters
+  await sendMail(
+    email,
+    "You have successfully created an account on urizen's password manager",
+    'User created'
+  );
+
+  res.status(StatusCodes.CREATED).json({ newUser, token });
 };
 
 const showUser = async (req, res) => {
@@ -24,9 +42,10 @@ const showUser = async (req, res) => {
   res.status(StatusCodes.OK).json(data);
 };
 
+
 const delUser = async (req, res) => {
-  const { name } = req.body;
-  const existingUser = await User.findOne({ name });
+  const { email } = req.body;
+  const existingUser = await User.findOne({ email });
 
   if (!existingUser) {
     throw new CustomAPIErrorHandler(
@@ -35,14 +54,14 @@ const delUser = async (req, res) => {
     );
   }
 
-  await User.deleteOne({ name });
-  await Manager.deleteOne({ user: name });
-
+  await User.deleteOne({ email });
+  await Manager.deleteOne({ email});
+  sendMail(email, "You have successfully deleted your account from urizen's password manager", 'User Deleted')
   res.status(StatusCodes.OK).json({ message: "User deleted successfully." });
 };
 
 const login = async (req, res) => {
-  const { name, password } = req.body;
+  const { email, password } = req.body;
   if (!password) {
     throw new CustomAPIErrorHandler(
       "Input your password",
@@ -50,7 +69,7 @@ const login = async (req, res) => {
     );
   }
 
-  const existingUser = await User.findOne({ name });
+  const existingUser = await User.findOne({ email });
   if (!existingUser) {
     throw new CustomAPIErrorHandler(
       "User not found",
@@ -66,13 +85,14 @@ const login = async (req, res) => {
     );
   }
   const token = existingUser.generateAuthToken()
+  sendMail(email, "You have just logged into your account on urizen's password manager", 'Login Alert')
   res.status(StatusCodes.OK).json({ message: "Welcome back" ,token,user:existingUser.name});
 };
 
 const updateInfo = async (req, res) => {
-  const { name, oldPassword, newPassword } = req.body;
+  const { email, oldPassword, newPassword } = req.body;
 
-  const existingUser = await User.findOne({ name });
+  const existingUser = await User.findOne({ email });
 
   if (!existingUser) {
     throw new CustomAPIErrorHandler(
@@ -104,13 +124,46 @@ const updateInfo = async (req, res) => {
       StatusCodes.BAD_REQUEST
     );
   }
-
+  sendMail(email, "You have successfully changed your password on account on urizen's password manager", 'Password Changed')
   await existingUser.save();
 
   res
     .status(StatusCodes.OK)
     .json({ message: "User information updated successfully." });
 };
+
+
+async function sendMail(req, res, receiver, message, topic) {
+  try {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+    const msg = {
+      to: `${receiver}`, // Change to your recipient
+      from: process.env.VERIFIED_EMAIL, // Change to your verified sender
+      subject: `${topic}`,
+      text: `${message}`,
+      // html: '<strong>Tell me when you receive this mail</strong>',
+    };
+
+    const info = await sgMail.send(msg);
+
+    console.log("Email sent");
+    res.json(info);
+  } catch (error) {
+    // console.error(error);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ msg: ReasonPhrases.INTERNAL_SERVER_ERROR });
+  }
+}
+
+
+
+
+
+
+
+module.exports = { sendMail }
 
 module.exports = {
   updateInfo,
