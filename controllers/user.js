@@ -5,10 +5,9 @@ const { CustomAPIErrorHandler } = require("../errors/custom-errors.js");
 const {
   ReasonPhrases,
   StatusCodes,
-  getReasonPhrase,
-  getStatusCode, } = require('http-status-codes')
+  } = require('http-status-codes')
 const sgMail = require('@sendgrid/mail')
-
+const {cookies} = require('../utils/jwt')
 
 // const nodemailer = require ('nodemailer')
 require('dotenv').config()
@@ -16,29 +15,33 @@ require('dotenv').config()
 
 const createUser = async (req, res) => {
   const existingUser = await User.findOne({ email: req.body.email });
-
+const {email,password} = req.body
   if (existingUser) {
     throw new CustomAPIErrorHandler(
       "User already exists.",
       StatusCodes.INTERNAL_SERVER_ERROR
     );
   }
-  const { email } = req.body;
-  const newUser = await User.create(req.body);
-  const token = newUser.generateAuthToken();
+  const newUser = await User.create({email,password});
+  const tokenUser = ({email:newUser.email,UserId:newUser._id})
+  cookies({res,user:tokenUser})
+  // const token = newUser.generateAuthToken();
+
 
   // Invoke the sendMail function with the required parameters
-  await sendMail(
-    email,
-    "You have successfully created an account on urizen's password manager",
-    'User created'
-  );
+  // await sendMail(
+  //   email,
+  //   "You have successfully created an account on urizen's password manager",
+  //   'User created'
+  // );
 
   res.status(StatusCodes.CREATED).json({ newUser, token });
 };
 
 const showUser = async (req, res) => {
   const data = await User.find({});
+  console.log(req.signedCookies)
+
   res.status(StatusCodes.OK).json(data);
 };
 
@@ -68,6 +71,9 @@ const login = async (req, res) => {
       StatusCodes.INTERNAL_SERVER_ERROR
     );
   }
+  if(!email || !password){
+     throw new CustomAPIErrorHandler("Invalid Request",StatusCodes.UNAUTHORIZED)
+  }
 
   const existingUser = await User.findOne({ email });
   if (!existingUser) {
@@ -76,17 +82,13 @@ const login = async (req, res) => {
       StatusCodes.INTERNAL_SERVER_ERROR
     );
   }
-
-  const pass = await bcrypt.compare(password, existingUser.password);
-  if (!pass) {
-    throw new CustomAPIErrorHandler(
-      "Invalid Credentials",
-      StatusCodes.UNAUTHORIZED
-    );
-  }
-  const token = existingUser.generateAuthToken()
-  sendMail(email, "You have just logged into your account on urizen's password manager", 'Login Alert')
-  res.status(StatusCodes.OK).json({ message: "Welcome back" ,token,user:existingUser.name});
+  existingUser.comparePassword(password)
+  const tokenUser = ({ email: existingUser.email, UserId: existingUser._id })
+  cookies({ res, user: tokenUser })
+  throw new CustomAPIErrorHandler('Logged in ',StatusCodes.OK)
+  // const token = existingUser.generateAuthToken()
+  // sendMail(email, "You have just logged into your account on urizen's password manager", 'Login Alert')
+  // res.status(StatusCodes.OK).json({ message: "Welcome back" ,token,user:existingUser.name});
 };
 
 const updateInfo = async (req, res) => {
@@ -124,7 +126,7 @@ const updateInfo = async (req, res) => {
       StatusCodes.BAD_REQUEST
     );
   }
-  sendMail(email, "You have successfully changed your password on account on urizen's password manager", 'Password Changed')
+  // sendMail(email, "You have successfully changed your password on account on urizen's password manager", 'Password Changed')
   await existingUser.save();
 
   res
@@ -151,9 +153,7 @@ async function sendMail(req, res, receiver, message, topic) {
     res.json(info);
   } catch (error) {
     // console.error(error);
-    res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ msg: ReasonPhrases.INTERNAL_SERVER_ERROR });
+    // res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ msg: ReasonPhrases.INTERNAL_SERVER_ERROR });
   }
 }
 
@@ -161,14 +161,11 @@ async function sendMail(req, res, receiver, message, topic) {
 
 
 
-
-
-module.exports = { sendMail }
-
 module.exports = {
   updateInfo,
   createUser,
   showUser,
   delUser,
   login,
+  sendMail
 };

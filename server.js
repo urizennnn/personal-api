@@ -9,6 +9,7 @@ const app = express();
 const passwordRouter = require("./routes/password.js");
 const userRouter = require("./routes/user.js");
 const connectDb = require("./db/connect.js");
+const cookie = require('cookie-parser')
 
 const errorHandlerMiddleware = require("./middleware/error-handler.js");
 const notFoundMiddleware = require("./middleware/not-found.js");
@@ -23,6 +24,7 @@ app.use(
 );
 app.use(express.json());
 app.use(morgan('dev'));
+app.use(cookie(process.env.JWT_SECRET))
 //Routes
 app.get("/api/v1/", (req, res) => {
   res.send("Hello");
