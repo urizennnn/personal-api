@@ -25,10 +25,10 @@ app.use(
   })
 );
 app.set('trust proxy',1)
-app.use(rateLimiter{
+app.use(rateLimiter({
   windowsMs:15*60*1000,
-  max:60
-})
+  max:60,
+}))
 app.use(helmet())
 app.use(xssCLean())
 app.use(mongoSanitize())
