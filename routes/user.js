@@ -26,7 +26,7 @@ router
   .get(showUser)
   .post(createUser)
   .put(auth,updateInfo)
-  .delete(delUser);
+  .delete(auth,delUser);
 router.post("/login", login);
 router.get('/logout',auth,logout)
 

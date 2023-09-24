@@ -17,12 +17,12 @@ const createPassword = async (req, res) => {
 
   const existingManager = await Manager.findOne({ email });
 
-  if (existingManager) {
-    throw new CustomAPIErrorHandler(
-      "Password manager already exists for this user. Proceed to update.",
-      StatusCodes.INTERNAL_SERVER_ERROR
-    );
-  }
+  // if (existingManager) {
+  //   throw new CustomAPIErrorHandler(
+  //     "Password manager already exists for this user. Proceed to update.",
+  //     StatusCodes.INTERNAL_SERVER_ERROR
+  //   );
+  // }
 
   const newInput = await Manager.create(req.body);
 
@@ -32,7 +32,7 @@ const createPassword = async (req, res) => {
 const updatePassword = async (req, res) => {
   const { email, passManagerKey, passManagerValue } = req.body;
 
-  const exist = User.find({email});
+  const exist = await User.findOne({email});
   if (!exist) {
     throw new CustomAPIErrorHandler(
       "User does not exist please create an account and try again",

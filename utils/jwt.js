@@ -14,6 +14,7 @@ function createJWT({payload,res}){
 
 function verifyJWT({token}){
     const Usertoken = jwt.verify(token, process.env.JWT_SECRET)
+    return Usertoken
 }
 
 function cookies({res,user}){

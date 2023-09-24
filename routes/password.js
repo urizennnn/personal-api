@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const auth = require('../middleware/auth')
 const {
   createPassword,
   updatePassword,
@@ -7,8 +8,8 @@ const {
 } = require("../controllers/password");
 
 router
-  .post("/createPassword", createPassword)
-  .patch("/updatePassword", updatePassword)
+  .post("/createPassword", auth,createPassword)
+  .patch("/updatePassword",auth, updatePassword)
   .get("/showPass", showPassword);
 
 module.exports = router;
