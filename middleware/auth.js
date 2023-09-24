@@ -13,7 +13,7 @@ function auth (req,res,next){
 
         const {email,UserId} = verifyJWT({token})
         req.user={email,UserId}
-        console.log(req.user)
+        // console.log(req.user)
         next()
 
     } catch (error) {

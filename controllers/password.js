@@ -30,24 +30,26 @@ const createPassword = async (req, res) => {
 };
 
 const updatePassword = async (req, res) => {
-  const { email, passManagerKey, passManagerValue } = req.body;
+  try {
+    const { email, passManagerKey, passManagerValue } = req.body;
+    const exists = await Manager.findOne({ email });
 
-  const exist = await User.findOne({email});
-  if (!exist) {
-    throw new CustomAPIErrorHandler(
-      "User does not exist please create an account and try again",
-      StatusCodes.INTERNAL_SERVER_ERROR
-    );
+    if (!exists) {
+      return res.status(404).json({ message: 'Please create a User or check the URL address and try again' });
+    }
+
+    // Update the specific key within the passManager object
+    exists.passManager[passManagerKey] = passManagerValue;
+
+    // Save the updated user
+    const updatedUser = await exists.save();
+
+    res.status(200).json(updatedUser);
+  } catch (error) {
+    throw new CustomAPIErrorHandler(error.message, StatusCodes.INTERNAL_SERVER_ERROR);
   }
-
-  const updatedUser = await Manager.findOneAndUpdate(
-    { email },
-    { $set: { [`passManager.${passManagerKey}`]: passManagerValue } },
-    { upsert: true, new: true }
-  );
-
-  res.status(StatusCodes.OK).json(updatedUser);
 };
+
 
 const showPassword = async (req, res) => {
   const data = await Manager.find({});
