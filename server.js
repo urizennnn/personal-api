@@ -1,6 +1,5 @@
 require("dotenv").config();
 require("express-async-errors");
-const auth = require('./middleware/auth')
 const cors = require("cors");
 const morgan = require('morgan');
 const express = require("express");

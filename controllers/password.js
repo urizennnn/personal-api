@@ -4,18 +4,18 @@ const { CustomAPIErrorHandler } = require("../errors/custom-errors.js");
 const { StatusCodes } = require("http-status-codes");
 
 const createPassword = async (req, res) => {
-  const { user } = req.body;
+  const { email } = req.body;
 
-  const existingUser = await User.findOne({ name: user });
+  const existingUser = await User.findOne({email });
 
   if (!existingUser) {
     throw new CustomAPIErrorHandler(
-      "User does not exist. Please create a user with this name and try again.",
+      "User does not exist. Please create a user with this email and try again.",
       StatusCodes.INTERNAL_SERVER_ERROR
     );
   }
 
-  const existingManager = await Manager.findOne({ user: user });
+  const existingManager = await Manager.findOne({ email });
 
   if (existingManager) {
     throw new CustomAPIErrorHandler(
@@ -30,9 +30,9 @@ const createPassword = async (req, res) => {
 };
 
 const updatePassword = async (req, res) => {
-  const { user, passManagerKey, passManagerValue } = req.body;
+  const { email, passManagerKey, passManagerValue } = req.body;
 
-  const exist = User.find({ name: user });
+  const exist = User.find({email});
   if (!exist) {
     throw new CustomAPIErrorHandler(
       "User does not exist please create an account and try again",
@@ -41,7 +41,7 @@ const updatePassword = async (req, res) => {
   }
 
   const updatedUser = await Manager.findOneAndUpdate(
-    { user },
+    { email },
     { $set: { [`passManager.${passManagerKey}`]: passManagerValue } },
     { upsert: true, new: true }
   );

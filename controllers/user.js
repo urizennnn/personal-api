@@ -35,7 +35,7 @@ const {email,password} = req.body
   //   'User created'
   // );
 
-  res.status(StatusCodes.CREATED).json({ newUser, token });
+  res.status(StatusCodes.CREATED).json({ newUser, tokenUser });
 };
 
 const showUser = async (req, res) => {
@@ -59,17 +59,15 @@ const delUser = async (req, res) => {
 
   await User.deleteOne({ email });
   await Manager.deleteOne({ email});
-  sendMail(email, "You have successfully deleted your account from urizen's password manager", 'User Deleted')
+  // sendMail(email, "You have successfully deleted your account from urizen's password manager", 'User Deleted')
   res.status(StatusCodes.OK).json({ message: "User deleted successfully." });
 };
 
 const login = async (req, res) => {
   const { email, password } = req.body;
-  if (!password) {
-    throw new CustomAPIErrorHandler(
-      "Input your password",
-      StatusCodes.INTERNAL_SERVER_ERROR
-    );
+  let logged = false
+  if(logged){
+    throw new CustomAPIErrorHandler('Please logout',StatusCodes.BAD_REQUEST)
   }
   if(!email || !password){
      throw new CustomAPIErrorHandler("Invalid Request",StatusCodes.UNAUTHORIZED)
@@ -82,14 +80,28 @@ const login = async (req, res) => {
       StatusCodes.INTERNAL_SERVER_ERROR
     );
   }
-  existingUser.comparePassword(password)
+  const isPasswordCorrect = bcrypt.compare(password,existingUser.password)
+  if(!isPasswordCorrect){
+    throw new CustomAPIErrorHandler("Invalid password",StatusCodes.UNAUTHORIZED)
+  }
+  
   const tokenUser = ({ email: existingUser.email, UserId: existingUser._id })
   cookies({ res, user: tokenUser })
-  throw new CustomAPIErrorHandler('Logged in ',StatusCodes.OK)
+  logged = true
+  return res.status(StatusCodes.OK).json({ message: "Logged in" });
   // const token = existingUser.generateAuthToken()
   // sendMail(email, "You have just logged into your account on urizen's password manager", 'Login Alert')
   // res.status(StatusCodes.OK).json({ message: "Welcome back" ,token,user:existingUser.name});
 };
+
+async function logout(req,res){
+  const payload = req.user
+res.cookie('token','',{
+  httpOnly: true,
+  expires: new Date(Date.now())
+})
+throw new CustomAPIErrorHandler('logged out'+payload,StatusCodes.OK)
+}
 
 const updateInfo = async (req, res) => {
   const { email, oldPassword, newPassword } = req.body;
@@ -167,5 +179,6 @@ module.exports = {
   showUser,
   delUser,
   login,
-  sendMail
+  sendMail,
+  logout
 };

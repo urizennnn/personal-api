@@ -1,20 +1,21 @@
-const jwt = require('jsonwebtoken')
-const User = require('../models/users')
+const { verifyJWT } = require('../utils/jwt')
 const { CustomAPIErrorHandler } = require("../errors/custom-errors.js");
 const { StatusCodes } = require("http-status-codes");
 
 function auth (req,res,next){
-    const authHeader =req.headers.authorization
-    if(!authHeader || !authHeader.startsWith('Bearer ')){
-        throw new CustomAPIErrorHandler('Authenticaion Invalid',StatusCodes.BAD_REQUEST)
+    const token = req.signedCookies
+
+    if(!token){
+        throw new CustomAPIErrorHandler('No token',StatusCodes.UNAUTHORIZED)
     }
-    const token = authHeader.split('')[1]
+
     try {
-        const payload = jwt.verify(token, process.env.JWT_SECRET)
-        req.user = {Userid:payload.userId}
+        const {email,UserId} = verifyJWT({token})
+        req.user={email,UserId}
         next()
+
     } catch (error) {
-        throw new CustomAPIErrorHandler('Internal Server Error',StatusCodes.BAD_REQUEST)
+        throw new CustomAPIErrorHandler('Authentication Required', StatusCodes.UNAUTHORIZED)
     }
 }
 
