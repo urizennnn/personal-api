@@ -8,6 +8,7 @@ const {
   showUser,
   delUser,
   login,
+  verifyEmail,
   logout
 } = require("../controllers/user");
 
@@ -29,5 +30,6 @@ router
   .delete(auth,delUser);
 router.post("/login", login);
 router.get('/logout',auth,logout)
+router.post('/verify-email',verifyEmail)
 
 module.exports = router;

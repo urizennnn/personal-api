@@ -13,10 +13,18 @@ const userSchema = Schema(
       type: String,
       required: [true, "Please provide a password."],
     },
+    isVerified:{
+      type:Boolean,
+      default:false
+    },
+    verificationToken:{
+      type:String
+    },
+    verified:Date
   },
   {
     timestamps: true,
-  }
+  } 
 );
 
 userSchema.pre("save", async function (next) {

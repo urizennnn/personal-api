@@ -26,10 +26,9 @@ const createUser = async (req, res) => {
   const verificationToken = crypto.randomBytes(40).toString('hex')
   const newUser = await User.create({ email, password, verificationToken });
   const tokenUser = ({ email: newUser.email, UserId: newUser._id })
-  cookies({ res, user: tokenUser })
 
-  await verificationMail({ name: newUser.name, email: newUser.email, verificationtoken: newUser.verificationToken,origin })
-  res.status(StatusCodes.CREATED).json({ newUser, tokenUser });
+  // await verificationMail({ email: newUser.email, verificationtoken: newUser.verificationToken,origin })
+  res.status(StatusCodes.CREATED).json({ newUser, tokenUser,verificationToken });
 };
 
 const showUser = async (req, res) => {
@@ -73,6 +72,9 @@ const login = async (req, res) => {
   const isPasswordCorrect = await bcrypt.compare(password, existingUser.password)
   if (!isPasswordCorrect) {
     throw new CustomAPIErrorHandler("Invalid password", StatusCodes.UNAUTHORIZED)
+  }
+  if(!existingUser.isVerified){
+    throw new CustomAPIErrorHandler('Please verify your email',StatusCodes.UNAUTHORIZED)
   }
 
   const tokenUser = ({ email: existingUser.email, UserId: existingUser._id })
@@ -142,6 +144,10 @@ const updateInfo = async (req, res) => {
       StatusCodes.BAD_REQUEST
     );
   }
+  res.cookie('token', '', {
+    httpOnly: true,
+    expires: new Date(Date.now())
+  })
   await existingUser.save();
 
   res
@@ -149,7 +155,28 @@ const updateInfo = async (req, res) => {
     .json({ message: "User information updated successfully." });
 };
 
+async function verifyEmail (req,res){
+try {
+  const {verificationToken,email} = req.body
+  const user = await User.findOne({email})
+  if(!user){
+    throw new CustomAPIErrorHandler('Verification failed',StatusCodes.UNAUTHORIZED)
+  }
+  if (user.verificationToken !== verificationToken){
+    throw new CustomAPIErrorHandler('Verification failed',StatusCodes.UNAUTHORIZED)
+  }
 
+  user.isVerified = true
+  user.verified =  Date.now()
+  user.verificationToken = ''
+  await user.save()
+  res.status(StatusCodes.OK).json({msg:'Email Verified'})
+} catch (error) {
+  throw new CustomAPIErrorHandler("Internal Server Error",StatusCodes.INTERNAL_SERVER_ERROR)
+}
+
+
+}
 
 
 
@@ -162,5 +189,6 @@ module.exports = {
   showUser,
   delUser,
   login,
+  verifyEmail,
   logout
 };
