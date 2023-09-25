@@ -5,27 +5,30 @@ const { CustomAPIErrorHandler } = require("../errors/custom-errors.js");
 const {
   ReasonPhrases,
   StatusCodes,
-  } = require('http-status-codes')
+} = require('http-status-codes')
 const sgMail = require('@sendgrid/mail')
-const {cookies} = require('../utils/jwt')
-
+const { cookies } = require('../utils/jwt')
+const crypto = require('crypto');
+const verificationMail = require("../mail/verificationMail");
 require('dotenv').config()
 
 
 const createUser = async (req, res) => {
   const existingUser = await User.findOne({ email: req.body.email });
-const {email,password} = req.body
+  const { email, password } = req.body
   if (existingUser) {
     throw new CustomAPIErrorHandler(
       "User already exists.",
       StatusCodes.INTERNAL_SERVER_ERROR
     );
   }
-  const newUser = await User.create({email,password});
-  const tokenUser = ({email:newUser.email,UserId:newUser._id})
-  cookies({res,user:tokenUser})
-  
+  const origin = 'http://localhost:3000'
+  const verificationToken = crypto.randomBytes(40).toString('hex')
+  const newUser = await User.create({ email, password, verificationToken });
+  const tokenUser = ({ email: newUser.email, UserId: newUser._id })
+  cookies({ res, user: tokenUser })
 
+  await verificationMail({ name: newUser.name, email: newUser.email, verificationtoken: newUser.verificationToken,origin })
   res.status(StatusCodes.CREATED).json({ newUser, tokenUser });
 };
 
@@ -49,37 +52,12 @@ const delUser = async (req, res) => {
   }
 
   await User.deleteOne({ email });
-  await Manager.deleteOne({ email});
+  await Manager.deleteOne({ email });
   res.status(StatusCodes.OK).json({ message: "User deleted successfully." });
 };
 
 const login = async (req, res) => {
   const { email, password } = req.body;
-  
-  if(!email || !password){
-     throw new CustomAPIErrorHandler("Invalid Request",StatusCodes.UNAUTHORIZED)
-  }
-
-  const existingUser = await User.findOne({ email });
-  if (!existingUser) {
-    throw new CustomAPIErrorHandler(
-      "User not found",
-      StatusCodes.INTERNAL_SERVER_ERROR
-    );
-  }
-  const isPasswordCorrect = await bcrypt.compare(password,existingUser.password)
-  if(!isPasswordCorrect){
-    throw new CustomAPIErrorHandler("Invalid password",StatusCodes.UNAUTHORIZED)
-  }
-  
-  const tokenUser = ({ email: existingUser.email, UserId: existingUser._id })
-  cookies({ res, user: tokenUser })//generates jwt token
-  const UserPasswords = await Manager.findOne({email})
-  return res.status(StatusCodes.OK).json({ message: "Logged in" ,UserPasswords});
-};
-
-async function logout(req,res){
-  const {email,password} = req.body
 
   if (!email || !password) {
     throw new CustomAPIErrorHandler("Invalid Request", StatusCodes.UNAUTHORIZED)
@@ -96,12 +74,37 @@ async function logout(req,res){
   if (!isPasswordCorrect) {
     throw new CustomAPIErrorHandler("Invalid password", StatusCodes.UNAUTHORIZED)
   }
-  const {UserId} = req.user
-res.cookie('token','',{
-  httpOnly: true,
-  expires: new Date(Date.now())
-})
-throw new CustomAPIErrorHandler(`${UserId} logged out`,StatusCodes.OK)
+
+  const tokenUser = ({ email: existingUser.email, UserId: existingUser._id })
+  cookies({ res, user: tokenUser })//generates jwt token
+  const UserPasswords = await Manager.findOne({ email })
+  return res.status(StatusCodes.OK).json({ message: "Logged in", UserPasswords });
+};
+
+async function logout(req, res) {
+  const { email, password } = req.body
+
+  if (!email || !password) {
+    throw new CustomAPIErrorHandler("Invalid Request", StatusCodes.UNAUTHORIZED)
+  }
+
+  const existingUser = await User.findOne({ email });
+  if (!existingUser) {
+    throw new CustomAPIErrorHandler(
+      "User not found",
+      StatusCodes.INTERNAL_SERVER_ERROR
+    );
+  }
+  const isPasswordCorrect = await bcrypt.compare(password, existingUser.password)
+  if (!isPasswordCorrect) {
+    throw new CustomAPIErrorHandler("Invalid password", StatusCodes.UNAUTHORIZED)
+  }
+  const { UserId } = req.user
+  res.cookie('token', '', {
+    httpOnly: true,
+    expires: new Date(Date.now())
+  })
+  throw new CustomAPIErrorHandler(`${UserId} logged out`, StatusCodes.OK)
 }
 
 const updateInfo = async (req, res) => {
