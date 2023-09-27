@@ -18,15 +18,15 @@ async function auth(req, res, next) {
             refreshToken: payload.refreshToken
         })
 
-        if (!existing || !existing?.isValid) {
-            throw new CustomAPIErrorHandler('Authentication Required', StatusCodes.UNAUTHORIZED)
+        if (!existing ) {
+            throw new CustomAPIErrorHandler('Not found', StatusCodes.UNAUTHORIZED)
 
         }
         cookies({ res, user: payload.user, refreshToken: existing.refreshToken })
         req.user = payload.user
         next()
     } catch (error) {
-        throw new CustomAPIErrorHandler('Authentication Required', StatusCodes.UNAUTHORIZED)
+        return res.status(401).json({msg:error.message})
     }
 }
 

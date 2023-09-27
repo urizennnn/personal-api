@@ -34,7 +34,7 @@ const createUser = async (req, res) => {
 
 const showUser = async (req, res) => {
   const data = await User.find({});
-  console.log(req.signedCookies)
+  console.log(req.user)
 
   res.status(StatusCodes.OK).json(data);
 };
@@ -87,8 +87,8 @@ const login = async (req, res) => {
       if (!isValid) {
         throw new CustomAPIErrorHandler('Invalid Credentials', StatusCodes.UNAUTHORIZED);
       }
-      refreshtoken = existingToken.refreshToken;
-      cookies({ res, user: tokenUser, refreshtoken });
+      refreshToken = existingToken.refreshToken;
+      cookies({ res, user: tokenUser, refreshToken });
       return res.status(StatusCodes.OK).json(tokenUser);
     }
     refreshToken = crypto.randomBytes(40).toString('hex');
@@ -102,35 +102,46 @@ const login = async (req, res) => {
     return res.status(StatusCodes.OK).json({ message: "Logged in", UserPasswords });
   } catch (error) {
     throw new CustomAPIErrorHandler('Something went wrong', error);
-    console.error(error);
+    // console.error(error);
   }
 };
 
 
 async function logout(req, res) {
-  const { email, password } = req.body
+  try {
+    const { email, password } = req.body
+  
+    if (!email || !password) {
+      throw new CustomAPIErrorHandler("Invalid Request", StatusCodes.UNAUTHORIZED)
+    }
+  
+    const existingUser = await User.findOne({ email });
+    if (!existingUser) {
+      throw new CustomAPIErrorHandler(
+        "User not found",
+        StatusCodes.INTERNAL_SERVER_ERROR
+      );
+    }
+    const isPasswordCorrect = await bcrypt.compare(password, existingUser.password)
+    if (!isPasswordCorrect) {
+      throw new CustomAPIErrorHandler("Invalid password", StatusCodes.UNAUTHORIZED)
+    }
+    // const { UserId } = req.user
 
-  if (!email || !password) {
-    throw new CustomAPIErrorHandler("Invalid Request", StatusCodes.UNAUTHORIZED)
+    // await Token.findOneAndDelete({ user:`${UserId }`})
+  
+    res.cookie('refreshToken', '', {
+      httpOnly: true,
+      expires: new Date(Date.now())
+    })
+    res.cookie('accessToken', '', {
+      httpOnly: true,
+      expires: new Date(Date.now())
+    })
+    throw new CustomAPIErrorHandler(`${UserId} logged out`, StatusCodes.OK)
+  } catch (error) {
+    console.error(error);
   }
-
-  const existingUser = await User.findOne({ email });
-  if (!existingUser) {
-    throw new CustomAPIErrorHandler(
-      "User not found",
-      StatusCodes.INTERNAL_SERVER_ERROR
-    );
-  }
-  const isPasswordCorrect = await bcrypt.compare(password, existingUser.password)
-  if (!isPasswordCorrect) {
-    throw new CustomAPIErrorHandler("Invalid password", StatusCodes.UNAUTHORIZED)
-  }
-  const { UserId } = req.user
-  res.cookie('refreshToken', '', {
-    httpOnly: true,
-    expires: new Date(Date.now())
-  })
-  throw new CustomAPIErrorHandler(`${UserId} logged out`, StatusCodes.OK)
 }
 
 const updateInfo = async (req, res) => {

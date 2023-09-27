@@ -29,7 +29,7 @@ router
   .put(auth,updateInfo)
   .delete(auth,delUser);
 router.post("/login", login);
-router.get('/logout',auth,logout)
+router.delete('/logout',auth,logout)
 router.post('/verify-email',verifyEmail)
 
 module.exports = router;
