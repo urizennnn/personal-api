@@ -1,9 +1,6 @@
 'use strict'
 const jwt = require('jsonwebtoken');
-const {
-    ReasonPhrases,
-    StatusCodes,
-} = require('http-status-codes')
+
 
 function createJWT({ payload }) {
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
@@ -17,18 +14,18 @@ function verifyJWT( token ) {
     return Usertoken
 }
 
-function cookies({ res, user,refreshtoken }) {
-    const accessToken = createJWT({ payload: user })
-    const refreshToken = createJWT({ payload: {user ,refreshtoken}})
+function cookies({ res, user,refreshToken }) {
+    const accessTokenJWT = createJWT({ payload: user })
+    const refreshTokenJWT = createJWT({ payload: {user ,refreshToken}})
     const timeLimit = 1000 * 60 * 60 * 24
 
-    res.cookie('accessToken', accessToken, {
+    res.cookie('accessToken', accessTokenJWT, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         signed: true,
         maxAge:1000
     })
-    res.cookie('refreshToken', refreshToken , {
+    res.cookie('refreshToken', refreshTokenJWT , {
         httpOnly: true,
         expires: new Date(Date.now() + timeLimit),
         secure: process.env.NODE_ENV === 'production',

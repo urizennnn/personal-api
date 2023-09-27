@@ -5,7 +5,7 @@ const tokenSchema = new mongoose.Schema({
     ip: { type: String, required: true },
     userAgent: { type: String, required: true },
     isValid: { type: Boolean, default: true },
-    user: {
+    UserId: {
         type: mongoose.Types.ObjectId,
         ref: 'User',
         required: true

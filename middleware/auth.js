@@ -7,21 +7,21 @@ const Token = require('../models/token')
 async function auth(req, res, next) {
     try {
         const { accessToken, refreshToken } = req.signedCookies
-        if (accessToken) {
-            const payload = verifyJWT(accessToken)
-            req.user = payload.user
-            return next()
+        
+        const payload = verifyJWT(refreshToken);
+        if (!payload || !payload.user || !payload.user.UserId || !payload.refreshToken) {
+            throw new CustomAPIErrorHandler('Invalid JWT payload', StatusCodes.UNAUTHORIZED);
         }
-        const payload = verifyJWT(refreshToken)
+
         const existing = await Token.findOne({
-            user: payload.user.UserId,
+            UserId: payload.user.UserId,
             refreshToken: payload.refreshToken
-        })
+        });
 
-        if (!existing ) {
-            throw new CustomAPIErrorHandler('Not found', StatusCodes.UNAUTHORIZED)
-
+        if (!existing) {
+            throw new CustomAPIErrorHandler('Not found', StatusCodes.UNAUTHORIZED);
         }
+
         cookies({ res, user: payload.user, refreshToken: existing.refreshToken })
         req.user = payload.user
         next()
