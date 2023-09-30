@@ -3,12 +3,16 @@ const Manager = require("../models/passwords");
 const Token = require('../models/token');
 const bcrypt = require("bcryptjs");
 const { CustomAPIErrorHandler } = require("../errors/custom-errors.js");
-const { ReasonPhrases, StatusCodes } = require('http-status-codes');
-const sgMail = require('@sendgrid/mail');
+const { StatusCodes } = require('http-status-codes');
 const { cookies } = require('../utils/jwt');
 const crypto = require('crypto');
 const verificationMail = require("../mail/verificationMail");
+const resetMail = require('../mail/resetMail')
+const successMail = require('../mail/successMail')
 require('dotenv').config();
+
+const origin = process.env.ORIGIN
+
 
 const createVerificationToken = () => crypto.randomBytes(40).toString('hex');
 
@@ -22,12 +26,11 @@ const createUser = async (req, res) => {
     throw new CustomAPIErrorHandler("User already exists.", StatusCodes.INTERNAL_SERVER_ERROR);
   }
 
-  const origin = 'http://localhost:3000';
   const verificationToken = createVerificationToken();
   const newUser = await User.create({ email, password, verificationToken });
   const tokenUser = { email: newUser.email, UserId: newUser._id };
 
-  // await verificationMail({ email: newUser.email, verificationtoken: newUser.verificationToken, origin });
+  await verificationMail({ email: newUser.email, token: newUser.verificationToken, origin });
   res.status(StatusCodes.CREATED).json({ newUser, tokenUser });
 };
 
@@ -192,10 +195,46 @@ const verifyEmail = async (req, res) => {
     await user.save();
     res.status(StatusCodes.OK).json({ msg: 'Email Verified' });
   } catch (error) {
-    throw new CustomAPIErrorHandler("Internal Server Error", StatusCodes.INTERNAL_SERVER_ERROR);
+    throw new CustomAPIErrorHandler(error.message, StatusCodes.INTERNAL_SERVER_ERROR);
   }
 }
+const forgotPassword = async (req, res) => {
+  const { email } = req.body
+  if (!email) {
+    throw new CustomAPIErrorHandler('Please provide email', StatusCodes.BAD_REQUEST)
+  }
+  const emailExist = await User.findOne({ email })
+  if (emailExist) {
+    const passToken = crypto.randomBytes(20).toString('hex')
 
+    await resetMail({ email: emailExist.email, token: passToken, origin })
+
+    const time = 1000 * 60 * 15
+    emailExist.passTokenExpiration = new Date(Date.now() + time)
+    emailExist.passwordToken = passToken
+    await emailExist.save()
+    res.status(StatusCodes.OK).json({ msg: 'Please check your email for verification link' })
+  }
+}
+const resetPassword = async (req, res) => {
+  const {email,token,password} = req.body
+  if(!email || !token || !password){
+    throw new CustomAPIErrorHandler('Please provide all values',StatusCodes.BAD_REQUEST)
+  }
+  const user = await User.findOne({email})
+  if(user){
+    const curDate = new Date
+    if (user.passwordToken === token && user.passTokenExpiration>curDate){
+      user.password = password
+      user.passwordToken=null
+      user.passTokenExpiration=null
+      await user.save()
+      await successMail({email:user.email})
+
+    }
+  }
+  res.status(StatusCodes.ACCEPTED).json({msg:"Successful",})
+}
 module.exports = {
   updateInfo,
   createUser,
@@ -203,5 +242,7 @@ module.exports = {
   delUser,
   login,
   verifyEmail,
-  logout
+  logout,
+  forgotPassword,
+  resetPassword
 };

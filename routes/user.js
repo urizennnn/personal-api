@@ -9,18 +9,11 @@ const {
   delUser,
   login,
   verifyEmail,
-  logout
+  logout,
+  forgotPassword,
+  resetPassword
 } = require("../controllers/user");
 
-//Commented this part out because i felt it wasn't really nessecary
-//because everthing could have been done on two different routes
-//One with "/" and the other with "/login"
-// router
-//   .get("/showUser", showUser)
-//   .post("/signup", createUser)
-//   .put("/updateInfo", updateInfo)
-//   .delete("/delUser", delUser)
-//   .post("/login", login);
 
 router
   .route("/")
@@ -31,5 +24,7 @@ router
 router.post("/login", login);
 router.delete('/logout',auth,logout)
 router.post('/verify-email',verifyEmail)
+router.post('/forgot-password',forgotPassword)
+router.post('/reset-password',resetPassword)
 
 module.exports = router;

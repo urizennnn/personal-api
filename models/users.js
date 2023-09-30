@@ -20,7 +20,13 @@ const userSchema = Schema(
     verificationToken:{
       type:String
     },
-    verified:Date
+    verified:Date,
+    passwordToken:{
+      type:String
+    },
+    passTokenExpiration:{
+      type:Date
+    },
   },
   {
     timestamps: true,

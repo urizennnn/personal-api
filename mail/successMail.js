@@ -1,12 +1,9 @@
-// const sendEmail = require('./sendMail');
 const sgMail = require('@sendgrid/mail')
 const fs = require('fs')
 
 
-async function verificationEmail({ email, origin, token }) {
-    const verifyEmail = `${origin}/user/verify-email?token=${token}&email=${email}`;
-    const html = fs.readFileSync(__dirname + '/../html/verification.html', 'utf-8')
-    const htmlMail = html.replace('${verifyEmail}', verifyEmail)
+async function successMail({ email }) {
+    const htmlMail = fs.readFileSync(__dirname + '/../html/success.html', 'utf-8')
     try {
         sgMail.setApiKey(process.env.SENDGRID_API_KEY);
         const msg = {
@@ -25,4 +22,4 @@ async function verificationEmail({ email, origin, token }) {
 
     }
 }
-module.exports = verificationEmail;
+module.exports = successMail;
