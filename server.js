@@ -32,6 +32,8 @@ app.use(mongoSanitize());
 app.use(express.json());
 app.use(morgan("dev"));
 app.use(cookieParser(process.env.JWT_SECRET));
+app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal']);
+
 // app.use(notFoundMiddleware);
 app.use(errorHandlerMiddleware);
 // Routes
