@@ -27,6 +27,10 @@ const userSchema = Schema(
     passTokenExpiration:{
       type:Date
     },
+    Device:{
+      type:Array,
+      required:true
+    }
   },
   {
     timestamps: true,

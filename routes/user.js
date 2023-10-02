@@ -11,7 +11,7 @@ const {
   verifyEmail,
   logout,
   forgotPassword,
-  resetPassword
+  resetPassword, showTokens
 } = require("../controllers/user");
 
 
@@ -26,5 +26,6 @@ router.delete('/logout',auth,logout)
 router.post('/verify-email',verifyEmail)
 router.post('/forgot-password',forgotPassword)
 router.post('/reset-password',resetPassword)
+router.get('/showtoken',showTokens)
 
 module.exports = router;

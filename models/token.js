@@ -10,6 +10,10 @@ const tokenSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
+    email:{
+        type:String,
+        required:true
+    }
 },
     { timestamps: true }
 

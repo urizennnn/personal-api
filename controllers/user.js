@@ -6,54 +6,96 @@ const { CustomAPIErrorHandler } = require("../errors/custom-errors.js");
 const { StatusCodes } = require('http-status-codes');
 const { cookies } = require('../utils/jwt');
 const crypto = require('crypto');
-const verificationMail = require("../mail/verificationMail");
-const resetMail = require('../mail/resetMail')
-const successMail = require('../mail/successMail')
+const mail = require('../mail/index');
+const os = require('os');
 require('dotenv').config();
 
-const origin = process.env.ORIGIN
+// Helper function to get the MAC address
+function getMac() {
+  const networkInterfaces = os.networkInterfaces();
+  const defaultInterface = networkInterfaces['Wi-Fi'] || networkInterfaces['Ethernet'];
 
+  if (defaultInterface) {
+    return defaultInterface[0].mac;
+  } else {
+    console.error('MAC address not found.');
+    return null;
+  }
+}
 
+// Constants
+const origin = process.env.ORIGIN;
+
+// Helper functions for creating tokens
+const createHash = (string) => crypto.createHash('md5').update(string).digest('hex');
 const createVerificationToken = () => crypto.randomBytes(40).toString('hex');
-
 const generateRefreshToken = () => crypto.randomBytes(40).toString('hex');
 
+// Controller functions
 const createUser = async (req, res) => {
   const { email, password } = req.body;
 
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    throw new CustomAPIErrorHandler("User already exists.", StatusCodes.INTERNAL_SERVER_ERROR);
+  try {
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+      throw new CustomAPIErrorHandler("User already exists.", StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+
+    const Device = getMac();
+    const verificationToken = createVerificationToken();
+
+    const newUser = await User.create({ email, password, verificationToken, Device });
+    const tokenUser = { email: newUser.email, UserId: newUser._id };
+
+    await mail.verificationEmail({ email: newUser.email, token: newUser.verificationToken, origin });
+
+    res.status(StatusCodes.CREATED).json({  tokenUser });
+  } catch (error) {
+    throw new CustomAPIErrorHandler(error.message, StatusCodes.INTERNAL_SERVER_ERROR);
   }
-
-  const verificationToken = createVerificationToken();
-  const newUser = await User.create({ email, password, verificationToken });
-  const tokenUser = { email: newUser.email, UserId: newUser._id };
-
-  await verificationMail({ email: newUser.email, token: newUser.verificationToken, origin });
-  res.status(StatusCodes.CREATED).json({ newUser, tokenUser });
 };
 
 const showUser = async (req, res) => {
-  const data = await User.find({});
-  console.log(req.user);
-  res.status(StatusCodes.OK).json(data);
+  try {
+    const data = await User.find({});
+    console.log(req.user);
+    res.status(StatusCodes.OK).json(data);
+  } catch (error) {
+    throw new CustomAPIErrorHandler(error.message, StatusCodes.INTERNAL_SERVER_ERROR);
+  }
 };
 
 const delUser = async (req, res) => {
   const { email } = req.body;
-  const existingUser = await User.findOne({ email });
 
-  if (!existingUser) {
-    throw new CustomAPIErrorHandler("User not found", StatusCodes.INTERNAL_SERVER_ERROR);
+  try {
+    const existingUser = await User.findOne({ email });
+
+    if (!existingUser) {
+      throw new CustomAPIErrorHandler("User not found", StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+
+    await Promise.all([
+      User.deleteOne({ email }),
+      Manager.deleteOne({ email }),
+      mail.delete({ email: existingUser.email })
+    ]);
+
+    res.cookie('refreshToken', '', {
+      httpOnly: true,
+      expires: new Date(Date.now())
+    });
+
+    res.cookie('accessToken', '', {
+      httpOnly: true,
+      expires: new Date(Date.now())
+    });
+
+    res.status(StatusCodes.OK).json({ message: "User deleted successfully." });
+  } catch (error) {
+    throw new CustomAPIErrorHandler(error.message, StatusCodes.INTERNAL_SERVER_ERROR);
   }
-
-  await Promise.all([
-    User.deleteOne({ email }),
-    Manager.deleteOne({ email })
-  ]);
-
-  res.status(StatusCodes.OK).json({ message: "User deleted successfully." });
 };
 
 const login = async (req, res) => {
@@ -65,11 +107,13 @@ const login = async (req, res) => {
     }
 
     const existingUser = await User.findOne({ email });
+
     if (!existingUser) {
       throw new CustomAPIErrorHandler("User not found", StatusCodes.INTERNAL_SERVER_ERROR);
     }
 
     const isPasswordCorrect = await bcrypt.compare(password, existingUser.password);
+
     if (!isPasswordCorrect) {
       throw new CustomAPIErrorHandler("Invalid password", StatusCodes.UNAUTHORIZED);
     }
@@ -77,6 +121,19 @@ const login = async (req, res) => {
     if (!existingUser.isVerified) {
       throw new CustomAPIErrorHandler('Please verify your email', StatusCodes.UNAUTHORIZED);
     }
+
+    let deviceFound = false;
+    const devices = existingUser.Device;
+    const curDevice = getMac();
+
+    devices.forEach((device) => {
+      if (device === curDevice) {
+        deviceFound = true;
+        return;
+      }
+    });
+
+    if (!deviceFound) await mail.loginAlert({ email: existingUser.email });
 
     const tokenUser = { email: existingUser.email, UserId: existingUser._id };
     let refreshToken;
@@ -95,7 +152,7 @@ const login = async (req, res) => {
     refreshToken = generateRefreshToken();
     const userAgent = req.headers['user-agent'];
     const ip = req.ip;
-    const userToken = { refreshToken, ip, userAgent, UserId: existingUser._id };
+    const userToken = { email, refreshToken, ip, userAgent, UserId: existingUser._id };
 
     await Token.create(userToken);
     cookies({ res, user: tokenUser, refreshToken });
@@ -103,8 +160,7 @@ const login = async (req, res) => {
     const UserPasswords = await Manager.findOne({ email });
     return res.status(StatusCodes.OK).json({ message: "Logged in", UserPasswords });
   } catch (error) {
-    throw new CustomAPIErrorHandler('Something went wrong', error);
-    // console.error(error);
+    throw new CustomAPIErrorHandler(error.message, StatusCodes.INTERNAL_SERVER_ERROR);
   }
 };
 
@@ -117,65 +173,70 @@ const logout = async (req, res) => {
     }
 
     const existingUser = await User.findOne({ email });
+
     if (!existingUser) {
       throw new CustomAPIErrorHandler("User not found", StatusCodes.INTERNAL_SERVER_ERROR);
     }
 
     const isPasswordCorrect = await bcrypt.compare(password, existingUser.password);
+
     if (!isPasswordCorrect) {
       throw new CustomAPIErrorHandler("Invalid password", StatusCodes.UNAUTHORIZED);
     }
 
-    const { UserId } = req.user;
-
-    await Token.findOneAndDelete({ user: UserId });
+    await Token.findOneAndDelete({ user: existingUser.email });
 
     // Clear cookies
     res.cookie('refreshToken', '', {
       httpOnly: true,
       expires: new Date(Date.now())
     });
+
     res.cookie('accessToken', '', {
       httpOnly: true,
       expires: new Date(Date.now())
     });
 
-    return res.status(StatusCodes.OK).json({ msg: `${UserId} logged out` });
+    return res.status(StatusCodes.OK).json({ msg: `${email} logged out` });
   } catch (error) {
-    throw new CustomAPIErrorHandler('Internal Server Error', StatusCodes.INTERNAL_SERVER_ERROR);
+    throw new CustomAPIErrorHandler(error.message, StatusCodes.INTERNAL_SERVER_ERROR);
   }
 };
 
 const updateInfo = async (req, res) => {
-  const { email, oldPassword, newPassword } = req.body;
+  try {
+    const { email, oldPassword, newPassword } = req.body;
+    const existingUser = await User.findOne({ email });
 
-  const existingUser = await User.findOne({ email });
-
-  if (!existingUser) {
-    throw new CustomAPIErrorHandler("User not found", StatusCodes.INTERNAL_SERVER_ERROR);
-  }
-
-  if (oldPassword && newPassword) {
-    const isOldPassValid = await bcrypt.compare(oldPassword, existingUser.password);
-
-    if (!isOldPassValid) {
-      throw new CustomAPIErrorHandler("Invalid old password", StatusCodes.INTERNAL_SERVER_ERROR);
+    if (!existingUser) {
+      throw new CustomAPIErrorHandler("User not found or invalid credentials", StatusCodes.INTERNAL_SERVER_ERROR);
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    if (oldPassword && newPassword) {
+      const isOldPassValid = await bcrypt.compare(oldPassword, existingUser.password);
 
-    existingUser.password = hashedPassword;
-  } else {
-    throw new CustomAPIErrorHandler("Both old password and new password are required.", StatusCodes.BAD_REQUEST);
+      if (!isOldPassValid) {
+        throw new CustomAPIErrorHandler("Invalid old password", StatusCodes.INTERNAL_SERVER_ERROR);
+      }
+
+      existingUser.password = newPassword;
+    } else {
+      throw new CustomAPIErrorHandler("Both old password and new password are required.", StatusCodes.BAD_REQUEST);
+    }
+
+    res.cookie('token', '', {
+      httpOnly: true,
+      expires: new Date(Date.now())
+    });
+
+    await existingUser.save();
+    await mail.detailsUpdated({ email: existingUser.email });
+
+    res.status(StatusCodes.OK).json({ message: "User information updated successfully." });
+  } catch (error) {
+    console.error(error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ msg: error.message });
   }
-  res.cookie('token', '', {
-    httpOnly: true,
-    expires: new Date(Date.now())
-  })
-  await existingUser.save();
-
-  res.status(StatusCodes.OK).json({ message: "User information updated successfully." });
 };
 
 const verifyEmail = async (req, res) => {
@@ -197,9 +258,10 @@ const verifyEmail = async (req, res) => {
   } catch (error) {
     throw new CustomAPIErrorHandler(error.message, StatusCodes.INTERNAL_SERVER_ERROR);
   }
-}
+};
+
 const forgotPassword = async (req, res) => {
-  const { email } = req.body
+  const { email } = req.body;
   if (!email) {
     throw new CustomAPIErrorHandler('Please provide email', StatusCodes.BAD_REQUEST)
   }
@@ -207,34 +269,40 @@ const forgotPassword = async (req, res) => {
   if (emailExist) {
     const passToken = crypto.randomBytes(20).toString('hex')
 
-    await resetMail({ email: emailExist.email, token: passToken, origin })
+    await mail.forgotPassword({ email: emailExist.email, token: passToken, origin })
 
     const time = 1000 * 60 * 15
     emailExist.passTokenExpiration = new Date(Date.now() + time)
-    emailExist.passwordToken = passToken
+    emailExist.passwordToken = createHash(passToken)
     await emailExist.save()
     res.status(StatusCodes.OK).json({ msg: 'Please check your email for verification link' })
   }
-}
-const resetPassword = async (req, res) => {
-  const {email,token,password} = req.body
-  if(!email || !token || !password){
-    throw new CustomAPIErrorHandler('Please provide all values',StatusCodes.BAD_REQUEST)
-  }
-  const user = await User.findOne({email})
-  if(user){
-    const curDate = new Date
-    if (user.passwordToken === token && user.passTokenExpiration>curDate){
-      user.password = password
-      user.passwordToken=null
-      user.passTokenExpiration=null
-      await user.save()
-      await successMail({email:user.email})
+};
 
+const resetPassword = async (req, res) => {
+  const { email, token, password } = req.body;
+  if (!email || !token || !password) {
+    throw new CustomAPIErrorHandler('Please provide all values', StatusCodes.BAD_REQUEST)
+  }
+  const user = await User.findOne({ email });
+  if (user) {
+    const curDate = new Date();
+    if (user.passwordToken === createHash(token) && user.passTokenExpiration > curDate) {
+      user.password = password;
+      user.passwordToken = null;
+      user.passTokenExpiration = null;
+      await user.save();
+      await mail.successMail({ email: user.email });
     }
   }
-  res.status(StatusCodes.ACCEPTED).json({msg:"Successful",})
-}
+  res.status(StatusCodes.ACCEPTED).json({ msg: "Successful" });
+};
+
+const showTokens = async (req, res) => {
+  const token = await Token.find({});
+  res.send(token).status(200);
+};
+
 module.exports = {
   updateInfo,
   createUser,
@@ -244,5 +312,6 @@ module.exports = {
   verifyEmail,
   logout,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  showTokens
 };
