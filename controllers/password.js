@@ -17,12 +17,12 @@ const createPassword = async (req, res) => {
 
   const existingManager = await Manager.findOne({ email });
 
-  // if (existingManager) {
-  //   throw new CustomAPIErrorHandler(
-  //     "Password manager already exists for this user. Proceed to update.",
-  //     StatusCodes.INTERNAL_SERVER_ERROR
-  //   );
-  // }
+  if (existingManager) {
+    throw new CustomAPIErrorHandler(
+      "Password manager already exists for this user. Proceed to update.",
+      StatusCodes.INTERNAL_SERVER_ERROR
+    );
+  }
 
   const newInput = await Manager.create(req.body);
 
@@ -31,20 +31,31 @@ const createPassword = async (req, res) => {
 
 const updatePassword = async (req, res) => {
   try {
-    const { email, passManagerKey, passManagerValue } = req.body;
+    const { email, name, password } = req.body;
     const exists = await Manager.findOne({ email });
 
+    const exist = await User.findOne({ email });
+    if (!exist) {
+      throw new CustomAPIErrorHandler(
+        "User does not exist please create an account and try again",
+        StatusCodes.INTERNAL_SERVER_ERROR
+      );
+    }
     if (!exists) {
       return res.status(404).json({ message: 'Please create a User or check the URL address and try again' });
     }
 
-    // Update the specific key within the passManager object
-    exists.passManager[passManagerKey] = passManagerValue;
+    const updatedUser = await Manager.findOneAndUpdate(
+      { email },
+      { $set: { [`passManager.${name}`]: password } },
+      { upsert: true, new: true }
+    );
+   
 
     // Save the updated user
-    const updatedUser = await exists.save();
+     await exists.save();
 
-    res.status(200).json(updatedUser);
+    res.status(200).json({namew :name, wpassword:password});
   } catch (error) {
     throw new CustomAPIErrorHandler(error.message, StatusCodes.INTERNAL_SERVER_ERROR);
   }
