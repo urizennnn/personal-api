@@ -10,7 +10,6 @@ const mail = require('../mail/index');
 const os = require('os');
 require('dotenv').config();
 
-// Helper function to get the MAC address
 function getMac() {
   const networkInterfaces = os.networkInterfaces();
   const defaultInterface = networkInterfaces['Wi-Fi'] || networkInterfaces['Ethernet'];
@@ -23,16 +22,21 @@ function getMac() {
   }
 }
 
-// Constants
 const origin = process.env.ORIGIN;
 
-// Helper functions for creating tokens
-const createHash = (string) => crypto.createHash('md5').update(string).digest('hex');
-const createVerificationToken = () => crypto.randomBytes(40).toString('hex');
-const generateRefreshToken = () => crypto.randomBytes(40).toString('hex');
+function createHash(string) {
+  return crypto.createHash('md5').update(string).digest('hex');
+}
 
-// Controller functions
-const createUser = async (req, res) => {
+function createVerificationToken() {
+  return crypto.randomBytes(40).toString('hex');
+}
+
+function generateRefreshToken() {
+  return crypto.randomBytes(40).toString('hex');
+}
+
+async function createUser(req, res) {
   const { email, password } = req.body;
 
   try {
@@ -54,9 +58,9 @@ const createUser = async (req, res) => {
   } catch (error) {
     throw new CustomAPIErrorHandler(error.message, StatusCodes.INTERNAL_SERVER_ERROR);
   }
-};
+}
 
-const showUser = async (req, res) => {
+async function showUser(req, res) {
   try {
     const data = await User.find({});
     console.log(req.user);
@@ -64,9 +68,9 @@ const showUser = async (req, res) => {
   } catch (error) {
     throw new CustomAPIErrorHandler(error.message, StatusCodes.INTERNAL_SERVER_ERROR);
   }
-};
+}
 
-const delUser = async (req, res) => {
+async function delUser(req, res) {
   const { email } = req.body;
 
   try {
@@ -96,9 +100,9 @@ const delUser = async (req, res) => {
   } catch (error) {
     throw new CustomAPIErrorHandler(error.message, StatusCodes.INTERNAL_SERVER_ERROR);
   }
-};
+}
 
-const login = async (req, res) => {
+async function login(req, res) {
   try {
     const { email, password } = req.body;
 
@@ -162,9 +166,9 @@ const login = async (req, res) => {
   } catch (error) {
     throw new CustomAPIErrorHandler(error.message, StatusCodes.INTERNAL_SERVER_ERROR);
   }
-};
+}
 
-const logout = async (req, res) => {
+async function logout(req, res) {
   try {
     const { email, password } = req.body;
 
@@ -200,9 +204,9 @@ const logout = async (req, res) => {
   } catch (error) {
     throw new CustomAPIErrorHandler(error.message, StatusCodes.INTERNAL_SERVER_ERROR);
   }
-};
+}
 
-const updateInfo = async (req, res) => {
+async function updateInfo(req, res) {
   try {
     const { email, oldPassword, newPassword } = req.body;
     const existingUser = await User.findOne({ email });
@@ -236,9 +240,9 @@ const updateInfo = async (req, res) => {
     console.error(error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ msg: error.message });
   }
-};
+}
 
-const verifyEmail = async (req, res) => {
+async function verifyEmail(req, res) {
   try {
     const { verificationToken, email } = req.body
     const user = await User.findOne({ email })
@@ -257,9 +261,9 @@ const verifyEmail = async (req, res) => {
   } catch (error) {
     throw new CustomAPIErrorHandler(error.message, StatusCodes.INTERNAL_SERVER_ERROR);
   }
-};
+}
 
-const forgotPassword = async (req, res) => {
+async function forgotPassword(req, res) {
   const { email } = req.body;
   if (!email) {
     throw new CustomAPIErrorHandler('Please provide email', StatusCodes.BAD_REQUEST)
@@ -278,7 +282,7 @@ const forgotPassword = async (req, res) => {
   }
 };
 
-const resetPassword = async (req, res) => {
+async function resetPassword(req, res) {
   const { email, token, password } = req.body;
   if (!email || !token || !password) {
     throw new CustomAPIErrorHandler('Please provide all values', StatusCodes.BAD_REQUEST)
@@ -296,9 +300,9 @@ const resetPassword = async (req, res) => {
   }
   res.status(StatusCodes.ACCEPTED).json({ msg: "Successful" });
 };
+
 async function deleteToken({ email }) {
   try {
-
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -315,27 +319,22 @@ async function deleteToken({ email }) {
   } catch (error) {
     console.error(error)
   }
-
 }
 
-
-
-const showTokens = async (req, res) => {
+async function showTokens(req, res) {
   const token = await Token.find({});
   res.send(token).status(200);
-};
+}
 
 module.exports = {
-  updateInfo,
   createUser,
   showUser,
   delUser,
   login,
   verifyEmail,
   logout,
+  updateInfo,
   forgotPassword,
   resetPassword,
   showTokens,
-
-
 };

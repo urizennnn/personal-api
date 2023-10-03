@@ -11,7 +11,6 @@ const {
 router
   .post("/createPassword", auth,createPassword)
   .patch("/addPassword", auth, addPassword)
-  .get("/showPass", showPassword)
   .delete ('/deletePassword', auth, deletePassword)
 
 module.exports = router;
