@@ -50,7 +50,7 @@ const createUser = async (req, res) => {
 
     await mail.verificationEmail({ email: newUser.email, token: newUser.verificationToken, origin });
 
-    res.status(StatusCodes.CREATED).json({  tokenUser });
+    res.status(StatusCodes.CREATED).json({ tokenUser });
   } catch (error) {
     throw new CustomAPIErrorHandler(error.message, StatusCodes.INTERNAL_SERVER_ERROR);
   }
@@ -184,8 +184,7 @@ const logout = async (req, res) => {
       throw new CustomAPIErrorHandler("Invalid password", StatusCodes.UNAUTHORIZED);
     }
 
-    await Token.findOneAndDelete({ user: existingUser.email });
-
+    await deleteToken({email})
     // Clear cookies
     res.cookie('refreshToken', '', {
       httpOnly: true,
@@ -297,6 +296,30 @@ const resetPassword = async (req, res) => {
   }
   res.status(StatusCodes.ACCEPTED).json({ msg: "Successful" });
 };
+ async function deleteToken({email}){
+  try {
+   
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+      const token = await Token.findOne({ email: existingUser.email });
+
+      if (token) {
+        // Delete the token associated with the user
+        await Token.deleteOne({ token: token.token }); // Assuming 'token' is the field name
+
+        return console.log('Token deleted');
+      } else {
+        return console.log(error)
+      }
+    }
+  } catch (error) {
+    console.error(error)
+  }
+
+}
+
+
 
 const showTokens = async (req, res) => {
   const token = await Token.find({});
@@ -313,5 +336,7 @@ module.exports = {
   logout,
   forgotPassword,
   resetPassword,
-  showTokens
+  showTokens,
+  deleteToken
+
 };

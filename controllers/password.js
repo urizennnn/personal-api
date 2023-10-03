@@ -2,11 +2,12 @@ const User = require("../models/users");
 const Manager = require("../models/passwords");
 const { CustomAPIErrorHandler } = require("../errors/custom-errors.js");
 const { StatusCodes } = require("http-status-codes");
+const bcrypt = require('bcryptjs')
 
 const createPassword = async (req, res) => {
   const { email } = req.body;
 
-  const existingUser = await User.findOne({email });
+  const existingUser = await User.findOne({ email });
 
   if (!existingUser) {
     throw new CustomAPIErrorHandler(
@@ -29,7 +30,7 @@ const createPassword = async (req, res) => {
   res.status(StatusCodes.CREATED).json(newInput);
 };
 
-const updatePassword = async (req, res) => {
+const addPassword = async (req, res) => {
   try {
     const { email, name, password } = req.body;
     const exists = await Manager.findOne({ email });
@@ -50,15 +51,45 @@ const updatePassword = async (req, res) => {
       { $set: { [`passManager.${name}`]: password } },
       { upsert: true, new: true }
     );
-   
+
 
     // Save the updated user
-     await exists.save();
+    await exists.save();
 
-    res.status(200).json({namew :name, wpassword:password});
+    res.status(200).json({ namew: name, wpassword: password });
   } catch (error) {
     throw new CustomAPIErrorHandler(error.message, StatusCodes.INTERNAL_SERVER_ERROR);
   }
+};
+
+const deletePassword = async (req, res) => {
+  const { email, name, password } = req.body;
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new CustomAPIErrorHandler('User not found', StatusCodes.BAD_REQUEST);
+  }
+
+  const isPasswordCorrect = await bcrypt.compare(password, user.password);
+
+  if (!isPasswordCorrect) {
+    throw new CustomAPIErrorHandler('Invalid password', StatusCodes.BAD_REQUEST);
+  }
+
+  const manager = await Manager.findOne({ email });
+
+  if (!manager) {
+    throw new CustomAPIErrorHandler('No Passwords to delete', StatusCodes.BAD_REQUEST);
+  }
+
+  if (manager.passManager && manager.passManager[name]) {
+    delete manager.passManager[name];
+    await manager.save();
+  } else {
+    throw new CustomAPIErrorHandler('Password not found', StatusCodes.BAD_REQUEST);
+  }
+
+  res.status(StatusCodes.OK).json({ message: 'Password deleted successfully' });
 };
 
 
@@ -69,6 +100,7 @@ const showPassword = async (req, res) => {
 
 module.exports = {
   createPassword,
-  updatePassword,
+  addPassword,
   showPassword,
+  deletePassword
 };
