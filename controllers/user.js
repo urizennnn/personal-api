@@ -184,7 +184,7 @@ const logout = async (req, res) => {
       throw new CustomAPIErrorHandler("Invalid password", StatusCodes.UNAUTHORIZED);
     }
 
-    await deleteToken({email})
+    await deleteToken({ email })
     // Clear cookies
     res.cookie('refreshToken', '', {
       httpOnly: true,
@@ -296,17 +296,16 @@ const resetPassword = async (req, res) => {
   }
   res.status(StatusCodes.ACCEPTED).json({ msg: "Successful" });
 };
- async function deleteToken({email}){
+async function deleteToken({ email }) {
   try {
-   
+
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
       const token = await Token.findOne({ email: existingUser.email });
 
       if (token) {
-        // Delete the token associated with the user
-        await Token.deleteOne({ token: token.token }); // Assuming 'token' is the field name
+        await Token.deleteOne({ token: token.token });
 
         return console.log('Token deleted');
       } else {
@@ -337,6 +336,6 @@ module.exports = {
   forgotPassword,
   resetPassword,
   showTokens,
-  deleteToken
+
 
 };

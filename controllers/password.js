@@ -63,33 +63,38 @@ const addPassword = async (req, res) => {
 };
 
 const deletePassword = async (req, res) => {
-  const { email, name, password } = req.body;
-  const user = await User.findOne({ email });
+  try {
+    const { email, name, password } = req.body;
+    const user = await User.findOne({ email });
+  
+    if (!user) {
+      throw new CustomAPIErrorHandler('User not found', StatusCodes.BAD_REQUEST);
+    }
+  
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+  
+    if (!isPasswordCorrect) {
+      throw new CustomAPIErrorHandler('Invalid password', StatusCodes.BAD_REQUEST);
+    }
+  
+    const manager = await Manager.findOne({ email });
+  
+    if (!manager) {
+      throw new CustomAPIErrorHandler('No Passwords to delete', StatusCodes.BAD_REQUEST);
+    }
+  
+const pass = manager.passManager
+    for (const [key, value] of pass) {
+      if(key === name){
+       pass.delete(key)
+       await manager.save()
+      }
+    }
+    res.status(200).json(pass)
+  } catch (error) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(error.message);
 
-  if (!user) {
-    throw new CustomAPIErrorHandler('User not found', StatusCodes.BAD_REQUEST);
   }
-
-  const isPasswordCorrect = await bcrypt.compare(password, user.password);
-
-  if (!isPasswordCorrect) {
-    throw new CustomAPIErrorHandler('Invalid password', StatusCodes.BAD_REQUEST);
-  }
-
-  const manager = await Manager.findOne({ email });
-
-  if (!manager) {
-    throw new CustomAPIErrorHandler('No Passwords to delete', StatusCodes.BAD_REQUEST);
-  }
-
-  if (manager.passManager && manager.passManager[name]) {
-    delete manager.passManager[name];
-    await manager.save();
-  } else {
-    throw new CustomAPIErrorHandler('Password not found', StatusCodes.BAD_REQUEST);
-  }
-
-  res.status(StatusCodes.OK).json({ message: 'Password deleted successfully' });
 };
 
 

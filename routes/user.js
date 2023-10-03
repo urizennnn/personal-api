@@ -13,7 +13,7 @@ const {
   forgotPassword,
   resetPassword,
    showTokens,
-   deleteToken
+   
 } = require("../controllers/user");
 
 
@@ -25,7 +25,6 @@ router
   .delete(auth,delUser);
 router.post("/login", login);
 router.delete('/logout',auth,logout)
-router.delete('/del', deleteToken)
 router.post('/verify-email',verifyEmail)
 router.post('/forgot-password',forgotPassword)
 router.post('/reset-password',resetPassword)
