@@ -1,3 +1,5 @@
+'use strict'
+
 const { CustomAPIErrorHandler } = require("../errors/custom-errors");
 const { StatusCodes } = require("http-status-codes");
 

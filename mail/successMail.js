@@ -1,4 +1,7 @@
+'use strict'
+
 const sgMail = require('@sendgrid/mail')
+
 const fs = require('fs')
 
 

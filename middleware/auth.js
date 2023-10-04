@@ -1,3 +1,5 @@
+'use strict'
+
 const { verifyJWT } = require('../utils/jwt')
 const { CustomAPIErrorHandler } = require("../errors/custom-errors.js");
 const { StatusCodes } = require("http-status-codes");

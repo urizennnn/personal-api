@@ -1,9 +1,10 @@
+'use strict'
 const User = require("../models/users");
 const Manager = require("../models/passwords");
 const { CustomAPIErrorHandler } = require("../errors/custom-errors.js");
 const { StatusCodes } = require("http-status-codes");
 const bcrypt = require('bcryptjs')
-
+ 
 const createPassword = async (req, res) => {
   const { email } = req.body;
 

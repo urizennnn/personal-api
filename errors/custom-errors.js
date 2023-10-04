@@ -1,3 +1,4 @@
+;'use strict'
 class CustomAPIErrorHandler extends Error {
   constructor(message, statusCode) {
     super(message);
