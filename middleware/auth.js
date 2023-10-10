@@ -8,9 +8,6 @@ const Token = require('../models/token')
 
 async function auth(req, res, next) {
     try {
-        if (!req.auth.sub) throw new CustomAPIErrorHandler('Unauthorized Server Request', StatusCodes.UNAUTHORIZED)
-        
-        
         const { accessToken, refreshToken } = req.signedCookies
         
         const payload = verifyJWT(refreshToken);
@@ -31,7 +28,7 @@ async function auth(req, res, next) {
         req.user = payload.user
         next()
     } catch (error) {
-        throw new CustomAPIErrorHandler(error.message,StatusCodes.INTERNAL_SERVER_ERROR)
+        return res.status(401).json({msg:error.message})
     }
 }
 
