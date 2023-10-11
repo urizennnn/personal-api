@@ -97,14 +97,10 @@ const deletePassword = async (req, res) => {
   }
 };
 
-const showPassword = async (req, res) => {
-  const data = await Manager.find({});
-  res.status(StatusCodes.OK).json({ data });
-};
+
 
 module.exports = {
   createPassword,
   addPassword,
-  showPassword,
   deletePassword
 };

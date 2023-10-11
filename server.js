@@ -11,12 +11,11 @@ const xssClean = require("xss-clean");
 const helmet = require("helmet");
 const rateLimiter = require("express-rate-limit");
 const mongoSanitize = require("express-mongo-sanitize");
-const os = require('os')
 
 const passwordRouter = require("./routes/password.js");
 const userRouter = require("./routes/user.js");
 const connectDb = require("./db/connect.js");
-const errorHandlerMiddleware = require("./middleware/error-handler.js");
+
 const networkInterfaces = require('network-interfaces')
 
 const app = express();

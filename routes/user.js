@@ -6,14 +6,12 @@ const auth = require('../middleware/auth')
 const {
   updateInfo,
   createUser,
-  showUser,
   delUser,
   login,
   verifyEmail,
   logout,
   forgotPassword,
   resetPassword,
-  showTokens,
 
 } = require("../controllers/user");
 

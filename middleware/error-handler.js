@@ -7,9 +7,7 @@ function errorHandler(err, req, res, next) {
   if (err instanceof CustomAPIErrorHandler) {
     return res.status(err.statusCode).json({ message: err.message });
   }
-  return res
-    .status(StatusCodes.INTERNAL_SERVER_ERROR)
-    .json({ msg: err.message });
+ throw new CustomAPIErrorHandler('Internal Server Error',StatusCodes.INTERNAL_SERVER_ERROR)
 }
 
 module.exports = errorHandler;

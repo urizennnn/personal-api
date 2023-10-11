@@ -6,7 +6,6 @@ const auth = require('../middleware/auth')
 const {
   createPassword,
   addPassword,
-  showPassword,
   deletePassword
 } = require("../controllers/password");
 

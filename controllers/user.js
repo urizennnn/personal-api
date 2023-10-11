@@ -8,34 +8,13 @@ const { StatusCodes } = require('http-status-codes');
 const { cookies } = require('../utils/jwt');
 const crypto = require('crypto');
 const mail = require('../mail/index');
-const os = require('os');
+const {deleteToken} = require('./tokenDeletion')
 require('dotenv').config();
-
-function getMac() {
-  const networkInterfaces = os.networkInterfaces();
-  const defaultInterface = networkInterfaces['Wi-Fi'] || networkInterfaces['Ethernet'];
-
-  if (defaultInterface) {
-    return defaultInterface[0].mac;
-  } else {
-    console.error('MAC address not found.');
-    return null;
-  }
-}
-
+const { getMac, createHash, createVerificationToken, generateRefreshToken } = require('./helper')
 const origin = process.env.ORIGIN;
 
-function createHash(string) {
-  return crypto.createHash('md5').update(string).digest('hex');
-}
 
-function createVerificationToken() {
-  return crypto.randomBytes(40).toString('hex');
-}
 
-function generateRefreshToken() {
-  return crypto.randomBytes(40).toString('hex');
-}
 
 async function createUser(req, res) {
   const { email, password } = req.body;
@@ -302,30 +281,9 @@ async function resetPassword(req, res) {
   res.status(StatusCodes.ACCEPTED).json({ msg: "Successful" });
 };
 
-async function deleteToken({ email }) {
-  try {
-    const existingUser = await User.findOne({ email });
 
-    if (existingUser) {
-      const token = await Token.findOne({ email: existingUser.email });
 
-      if (token) {
-        await Token.deleteOne({ token: token.token });
 
-        return console.log('Token deleted');
-      } else {
-        return console.log(error)
-      }
-    }
-  } catch (error) {
-    console.error(error)
-  }
-}
-
-async function showTokens(req, res) {
-  const token = await Token.find({});
-  res.send(token).status(200);
-}
 
 module.exports = {
   createUser,
@@ -337,5 +295,4 @@ module.exports = {
   updateInfo,
   forgotPassword,
   resetPassword,
-  showTokens,
 };
