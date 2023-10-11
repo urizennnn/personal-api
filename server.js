@@ -3,7 +3,6 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const { execSync } = require('child_process')
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const xssClean = require("xss-clean");
@@ -15,7 +14,6 @@ const passwordRouter = require("./routes/password.js");
 const userRouter = require("./routes/user.js");
 const connectDb = require("./db/connect.js");
 
-const networkInterfaces = require('network-interfaces')
 
 const app = express();
 const PORT = process.env.PORT || 3000;
